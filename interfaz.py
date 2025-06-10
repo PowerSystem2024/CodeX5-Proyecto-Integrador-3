@@ -174,3 +174,179 @@ class SistemaReservas:
             ctk.CTkButton(frame, text="Panel de Admin", command=self.mostrar_panel_admin, width=200, corner_radius=8, fg_color="#5b75f9").pack(pady=10)
         ctk.CTkButton(frame, text="Cerrar Sesión", command=self.mostrar_inicial, width=200, corner_radius=8, fg_color="#5b75f9").pack(pady=10)
     
+    def mostrar_nueva_reserva(self):
+        self.limpiar_frame()
+        frame = ctk.CTkFrame(self.root, fg_color="#2b2b2b")
+        frame.pack(pady=20, padx=20, fill="both", expand=True)
+        
+        ctk.CTkLabel(frame, text="Nueva Reserva", font=("Arial", 16), text_color="#ffffff").pack(pady=10)
+        
+        ctk.CTkLabel(frame, text="Fecha (dd/mm/yyyy):", text_color="#ffffff").pack()
+        entrada_fecha = DateEntry(
+            frame,
+            date_pattern="dd/mm/yyyy",
+            width=20,
+            background="#242424",
+            foreground="#ffffff",
+            selectbackground="#353535",
+            selectforeground="#ffffff",
+            bordercolor="#5b75f9",
+            othermonthbackground="#353535"
+        )
+        entrada_fecha.pack(pady=5)
+        
+        ctk.CTkLabel(frame, text="Hora:", text_color="#ffffff").pack()
+        combo_hora = ctk.CTkComboBox(frame, values=self.horas, width=200, state="readonly", fg_color="#242424", text_color="#ffffff", button_color="#5b75f9", border_color="#5b75f9", border_width=2, corner_radius=8)
+        combo_hora.pack(pady=5)
+        
+        ctk.CTkLabel(frame, text="Cancha:", text_color="#ffffff").pack()
+        combo_cancha = ctk.CTkComboBox(frame, values=self.canchas, width=200, state="readonly", fg_color="#242424", text_color="#ffffff", button_color="#5b75f9", border_color="#5b75f9", border_width=2, corner_radius=8)
+        combo_cancha.pack(pady=5)
+        
+        def crear():
+            fecha = self.parsear_fecha(entrada_fecha.get())
+            hora = combo_hora.get()
+            cancha = combo_cancha.get()
+            if fecha and hora and cancha:
+                if crear_reserva(self.usuario_actual[0], fecha, hora, cancha):
+                    messagebox.showinfo("Éxito", "Reserva creada!")
+                    self.mostrar_menu_usuario()
+                else:
+                    messagebox.showerror("Error", "El turno ya está reservado o hubo un error.")
+            else:
+                messagebox.showerror("Error", "Seleccione todos los campos.")
+        
+        ctk.CTkButton(frame, text="Crear Reserva", command=crear, corner_radius=8, fg_color="#5b75f9").pack(pady=10)
+        ctk.CTkButton(frame, text="Volver", command=self.mostrar_menu_usuario, corner_radius=8, fg_color="#333333").pack(pady=20)
+    
+    def mostrar_ver_reservas(self):
+        self.limpiar_frame()
+        frame = ctk.CTkFrame(self.root, fg_color="#2b2b2b")
+        frame.pack(pady=20, padx=20, fill="both", expand=True)
+        
+        ctk.CTkLabel(frame, text="Tus Reservas", font=("Arial", 16), text_color="#ffffff").pack(pady=10)
+        
+        table_frame = ctk.CTkFrame(frame, fg_color="#242424")
+        table_frame.pack(fill="x", padx=10, pady=10)
+        
+        reservas = ver_reservas(self.usuario_actual[0])
+        if reservas:
+            tree = ttk.Treeview(table_frame, columns=("ID", "Fecha", "Hora", "Cancha"), show="headings", height=10)
+            tree.heading("ID", text="ID")
+            tree.heading("Fecha", text="Fecha")
+            tree.heading("Hora", text="Hora")
+            tree.heading("Cancha", text="Cancha")
+            tree.column("ID", width=50)
+            tree.column("Fecha", width=100)
+            tree.column("Hora", width=80)
+            tree.column("Cancha", width=100)
+            tree.pack(fill="x", expand=True)
+            
+            for reserva in reservas:
+                fecha_formateada = self.formatear_fecha(reserva[1])
+                tree.insert("", tk.END, values=(reserva[0], fecha_formateada, reserva[2], reserva[3]))
+        else:
+            ctk.CTkLabel(frame, text="No tienes reservas.", text_color="#ffffff").pack(pady=10)
+        
+        ctk.CTkButton(frame, text="Volver", command=self.mostrar_menu_usuario, corner_radius=8, fg_color="#333333").pack(pady=20)
+    
+    def mostrar_cancelar_reserva(self):
+        self.limpiar_frame()
+        frame = ctk.CTkFrame(self.root, fg_color="#2b2b2b")
+        frame.pack(pady=20, padx=20, fill="both", expand=True)
+        
+        ctk.CTkLabel(frame, text="Cancelar Reserva", font=("Arial", 16), text_color="#ffffff").pack(pady=10)
+        
+        table_frame = ctk.CTkFrame(frame, fg_color="#242424")
+        table_frame.pack(fill="x", padx=10, pady=10)
+        
+        reservas = ver_reservas(self.usuario_actual[0])
+        if reservas:
+            tree = ttk.Treeview(table_frame, columns=("ID", "Fecha", "Hora", "Cancha"), show="headings", height=10)
+            tree.heading("ID", text="ID")
+            tree.heading("Fecha", text="Fecha")
+            tree.heading("Hora", text="Hora")
+            tree.heading("Cancha", text="Cancha")
+            tree.column("ID", width=50)
+            tree.column("Fecha", width=100)
+            tree.column("Hora", width=80)
+            tree.column("Cancha", width=100)
+            tree.pack(fill="x", expand=True)
+            
+            for reserva in reservas:
+                fecha_formateada = self.formatear_fecha(reserva[1])
+                tree.insert("", tk.END, values=(reserva[0], fecha_formateada, reserva[2], reserva[3]))
+            
+            def cancelar():
+                seleccion = tree.selection()
+                if seleccion:
+                    reserva_id = tree.item(seleccion[0])["values"][0]
+                    if eliminar_reserva(reserva_id):
+                        messagebox.showinfo("Éxito", "Reserva cancelada!")
+                        tree.delete(seleccion[0])
+                    else:
+                        messagebox.showerror("Error", "No se pudo cancelar la reserva.")
+                else:
+                    messagebox.showerror("Error", "Seleccione una reserva.")
+            
+            ctk.CTkButton(frame, text="Cancelar Reserva Seleccionada", command=cancelar, corner_radius=8, fg_color="#5b75f9").pack(pady=10)
+        else:
+            ctk.CTkLabel(frame, text="No tienes reservas.", text_color="#ffffff").pack(pady=10)
+        
+        ctk.CTkButton(frame, text="Volver", command=self.mostrar_menu_usuario, corner_radius=8, fg_color="#333333").pack(pady=20)
+    
+    def mostrar_panel_admin(self):
+        self.limpiar_frame()
+        frame = ctk.CTkFrame(self.root, fg_color="#2b2b2b")
+        frame.pack(pady=20, padx=20, fill="both", expand=True)
+        
+        ctk.CTkLabel(frame, text="Panel de Administrador", font=("Arial", 16), text_color="#ffffff").pack(pady=10)
+        
+        ctk.CTkLabel(frame, text="Todas las Reservas", text_color="#ffffff").pack(pady=5)
+        
+        table_frame = ctk.CTkFrame(frame, fg_color="#242424")
+        table_frame.pack(fill="x", padx=10, pady=10)
+        
+        reservas = ver_todas_reservas()
+        if reservas:
+            tree = ttk.Treeview(table_frame, columns=("ID", "UsuarioID", "Nombre", "Fecha", "Hora", "Cancha"), show="headings", height=10)
+            tree.heading("ID", text="ID")
+            tree.heading("UsuarioID", text="Usuario ID")
+            tree.heading("Nombre", text="Nombre")
+            tree.heading("Fecha", text="Fecha")
+            tree.heading("Hora", text="Hora")
+            tree.heading("Cancha", text="Cancha")
+            tree.column("ID", width=50)
+            tree.column("UsuarioID", width=80)
+            tree.column("Nombre", width=100)
+            tree.column("Fecha", width=100)
+            tree.column("Hora", width=80)
+            tree.column("Cancha", width=100)
+            tree.pack(fill="x", expand=True)
+            
+            for reserva in reservas:
+                fecha_formateada = self.formatear_fecha(reserva[3])
+                tree.insert("", tk.END, values=(reserva[0], reserva[1], reserva[2], fecha_formateada, reserva[4], reserva[5]))
+            
+            def cancelar():
+                seleccion = tree.selection()
+                if seleccion:
+                    reserva_id = tree.item(seleccion[0])["values"][0]
+                    if eliminar_reserva(reserva_id):
+                        messagebox.showinfo("Éxito", "Reserva cancelada!")
+                        tree.delete(seleccion[0])
+                    else:
+                        messagebox.showerror("Error", "No se pudo cancelar la reserva.")
+                else:
+                    messagebox.showerror("Error", "Seleccione una reserva.")
+            
+            ctk.CTkButton(frame, text="Cancelar Reserva Seleccionada", command=cancelar, corner_radius=8, fg_color="#5b75f9").pack(pady=10)
+        else:
+            ctk.CTkLabel(frame, text="No hay reservas.", text_color="#ffffff").pack(pady=10)
+        
+        ctk.CTkButton(frame, text="Volver", command=self.mostrar_menu_usuario, corner_radius=8, fg_color="#333333").pack(pady=20)
+
+if __name__ == "__main__":
+    root = ctk.CTk()
+    app = SistemaReservas(root)
+    root.mainloop()
